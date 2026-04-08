@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# uv / venv
+.venv/
+uv.lock
+
+# Generated reports from local testing
+*.html
+!examples/*.html
+reports/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
