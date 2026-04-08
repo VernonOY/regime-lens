@@ -19,11 +19,17 @@ one-sentence summary.
 
 ## Install
 
+v0.1 ships via GitHub only — the package is **not yet on PyPI**.
+
 ```bash
-uv add regime-lens
-# or
-pip install regime-lens
+# via uv (recommended)
+uv add "git+https://github.com/VernonOY/regime-lens@v0.1.0"
+
+# via pip
+pip install "git+https://github.com/VernonOY/regime-lens@v0.1.0"
 ```
+
+A PyPI release is planned for v0.2.
 
 ## Quickstart (Python)
 
