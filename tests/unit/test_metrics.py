@@ -2,10 +2,17 @@
 
 import math
 
+import numpy as np
 import pandas as pd
 import pytest
 
-from regime_lens.core.metrics import ic_ir, ic_mean, ic_win_rate
+from regime_lens.core.metrics import (
+    annualized_return,
+    ic_ir,
+    ic_mean,
+    ic_win_rate,
+    max_drawdown,
+)
 
 
 def test_ic_mean_simple() -> None:
@@ -46,3 +53,39 @@ def test_ic_win_rate_excludes_zeros_as_losses() -> None:
 
 def test_ic_win_rate_empty_returns_nan() -> None:
     assert math.isnan(ic_win_rate(pd.Series([], dtype="float64")))
+
+
+def test_annualized_return_zero_returns_zero() -> None:
+    zero = pd.Series([0.0] * 252)
+    assert annualized_return(zero) == pytest.approx(0.0)
+
+
+def test_annualized_return_constant_positive() -> None:
+    # 0.1% every day for 252 days → ~28.6% annualized
+    daily = pd.Series([0.001] * 252)
+    expected = (1.001**252) - 1
+    assert annualized_return(daily) == pytest.approx(expected)
+
+
+def test_annualized_return_empty_returns_nan() -> None:
+    assert math.isnan(annualized_return(pd.Series([], dtype="float64")))
+
+
+def test_max_drawdown_monotonic_up_is_zero() -> None:
+    # All positive returns → equity curve never retreats → drawdown is 0
+    r = pd.Series([0.01] * 100)
+    assert max_drawdown(r) == pytest.approx(0.0)
+
+
+def test_max_drawdown_simple_peak_to_trough() -> None:
+    # +10% then -20% → peak = 1.10, trough = 0.88, drawdown = -0.20
+    r = pd.Series([0.10, -0.20])
+    assert max_drawdown(r) == pytest.approx(-0.20)
+
+
+def test_max_drawdown_empty_returns_nan() -> None:
+    assert math.isnan(max_drawdown(pd.Series([], dtype="float64")))
+
+
+def test_max_drawdown_all_nan_returns_nan() -> None:
+    assert math.isnan(max_drawdown(pd.Series([np.nan, np.nan])))

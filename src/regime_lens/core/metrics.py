@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
 import pandas as pd
 
 _TRADING_DAYS_PER_YEAR = 252
@@ -39,3 +40,30 @@ def ic_win_rate(ic: pd.Series) -> float:
     if len(ic) == 0:
         return math.nan
     return float((ic > 0).mean())
+
+
+def annualized_return(returns: pd.Series, periods_per_year: int = _TRADING_DAYS_PER_YEAR) -> float:
+    """Annualized compound return from a daily return series.
+
+    Returns NaN on empty input or if the cumulative growth becomes non-positive
+    (which would make the geometric mean undefined).
+    """
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return math.nan
+    total_growth: float = float(np.prod(1.0 + clean.to_numpy()))
+    if total_growth <= 0:
+        return math.nan
+    ann: float = total_growth ** (periods_per_year / len(clean)) - 1.0
+    return ann
+
+
+def max_drawdown(returns: pd.Series) -> float:
+    """Worst peak-to-trough drawdown on the cumulative equity curve (<= 0)."""
+    clean = returns.dropna()
+    if len(clean) == 0:
+        return math.nan
+    equity = np.cumprod(1.0 + clean.to_numpy())
+    rolling_peak = np.maximum.accumulate(equity)
+    drawdown = equity / rolling_peak - 1.0
+    return float(drawdown.min())
