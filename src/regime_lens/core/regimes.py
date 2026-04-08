@@ -50,3 +50,37 @@ def detect_volatility_regime(market_prices: pd.Series, window: int = 20) -> pd.S
     labels: pd.Series = (rolling_vol > threshold).astype(np.int8)
     labels.name = "volatility_regime"
     return labels
+
+
+def detect_trend_regime(market_prices: pd.Series, window: int = 60) -> pd.Series:
+    """Label days as up-trend (1) or down-trend (0) relative to a moving average.
+
+    Up-trend = close price strictly above the N-day simple moving average.
+
+    Parameters
+    ----------
+    market_prices : pd.Series
+        DatetimeIndex, float values, length >= window.
+    window : int
+        Moving average window in trading days.
+
+    Returns
+    -------
+    pd.Series
+        int8 0/1 series, length = len(market_prices) - (window - 1).
+
+    Raises
+    ------
+    ValueError
+        If market_prices has length < window.
+    """
+    if len(market_prices) < window:
+        raise ValueError(
+            f"market_prices must have at least {window} rows, got {len(market_prices)}"
+        )
+
+    ma = market_prices.rolling(window).mean()
+    valid = ma.notna()
+    labels: pd.Series = (market_prices[valid] > ma[valid]).astype(np.int8)
+    labels.name = "trend_regime"
+    return labels

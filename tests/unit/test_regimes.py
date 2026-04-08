@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from regime_lens.core.regimes import detect_volatility_regime
+from regime_lens.core.regimes import detect_trend_regime, detect_volatility_regime
 
 
 def test_volatility_regime_returns_int8_series(
@@ -51,3 +51,40 @@ def test_volatility_regime_high_vol_half_dominated_by_label_1() -> None:
 def test_volatility_regime_rejects_empty_series() -> None:
     with pytest.raises(ValueError, match="at least"):
         detect_volatility_regime(pd.Series([], dtype="float64"), window=20)
+
+
+def test_trend_regime_returns_int8_series(
+    sample_market_prices: "pd.Series[float]",
+) -> None:
+    regime = detect_trend_regime(sample_market_prices, window=60)
+    assert regime.dtype == np.int8
+    assert set(regime.unique()).issubset({0, 1})
+
+
+def test_trend_regime_drops_warmup_nans(
+    sample_market_prices: "pd.Series[float]",
+) -> None:
+    regime = detect_trend_regime(sample_market_prices, window=60)
+    # 60-day MA means first 59 entries are NaN (pandas rolling default)
+    assert len(regime) == len(sample_market_prices) - 59
+    assert regime.index[0] == sample_market_prices.index[59]
+
+
+def test_trend_regime_detects_uptrend() -> None:
+    """Monotonically increasing prices → regime is 1 (above MA) almost everywhere."""
+    idx = pd.bdate_range("2024-01-02", periods=200)
+    prices = pd.Series(np.linspace(100, 200, 200), index=idx)
+    regime = detect_trend_regime(prices, window=60)
+    assert regime.mean() > 0.95
+
+
+def test_trend_regime_detects_downtrend() -> None:
+    idx = pd.bdate_range("2024-01-02", periods=200)
+    prices = pd.Series(np.linspace(200, 100, 200), index=idx)
+    regime = detect_trend_regime(prices, window=60)
+    assert regime.mean() < 0.05
+
+
+def test_trend_regime_rejects_short_series() -> None:
+    with pytest.raises(ValueError, match="at least"):
+        detect_trend_regime(pd.Series([1.0, 2.0, 3.0]), window=60)
