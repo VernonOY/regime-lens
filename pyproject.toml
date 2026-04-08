@@ -49,6 +49,7 @@ packages = ["src/regime_lens"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+exclude = ["tests/cases/"]
 
 [tool.ruff.lint]
 select = [
@@ -67,6 +68,7 @@ select = [
 [tool.mypy]
 python_version = "3.11"
 strict = true
+exclude = ["tests/cases/"]
 
 [[tool.mypy.overrides]]
 module = "plotly.*"
@@ -78,6 +80,7 @@ addopts = "-ra --strict-markers"
 
 [tool.coverage.run]
 source = ["src/regime_lens"]
+omit = ["tests/cases/*"]
 
 [tool.coverage.report]
 exclude_lines = ["pragma: no cover", "raise NotImplementedError"]
