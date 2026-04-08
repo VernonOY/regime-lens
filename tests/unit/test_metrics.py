@@ -8,6 +8,7 @@ import pytest
 
 from regime_lens.core.metrics import (
     annualized_return,
+    compute_metrics_by_regime,
     ic_ir,
     ic_mean,
     ic_win_rate,
@@ -105,3 +106,66 @@ def test_mean_turnover_empty_series_returns_nan() -> None:
     result = mean_turnover(pd.Series([], dtype="float64"))
     assert result is not None
     assert math.isnan(result)
+
+
+def test_compute_metrics_by_regime_shape() -> None:
+    idx = pd.bdate_range("2024-01-02", periods=10)
+    ic = pd.Series([0.01] * 5 + [0.05] * 5, index=idx)
+    ls = pd.Series([0.001] * 5 + [0.003] * 5, index=idx)
+    regime = pd.Series([0] * 5 + [1] * 5, index=idx, dtype="int8")
+    result = compute_metrics_by_regime(ic, ls, regime, turnover=None)
+    assert set(result.keys()) == {0, 1}
+    assert set(result[0].keys()) == {
+        "ic_mean",
+        "ic_ir",
+        "ic_win_rate",
+        "annualized_return",
+        "max_drawdown",
+        "mean_turnover",
+    }
+
+
+def test_compute_metrics_by_regime_separates_groups() -> None:
+    idx = pd.bdate_range("2024-01-02", periods=10)
+    ic = pd.Series([0.01] * 5 + [0.05] * 5, index=idx)
+    ls = pd.Series([0.001] * 10, index=idx)
+    regime = pd.Series([0] * 5 + [1] * 5, index=idx, dtype="int8")
+    result = compute_metrics_by_regime(ic, ls, regime, turnover=None)
+    assert result[0]["ic_mean"] == pytest.approx(0.01)
+    assert result[1]["ic_mean"] == pytest.approx(0.05)
+    assert result[0]["mean_turnover"] is None
+    assert result[1]["mean_turnover"] is None
+
+
+def test_compute_metrics_by_regime_empty_group_gives_nan() -> None:
+    idx = pd.bdate_range("2024-01-02", periods=5)
+    ic = pd.Series([0.01, 0.02, 0.03, 0.04, 0.05], index=idx)
+    ls = pd.Series([0.001] * 5, index=idx)
+    regime = pd.Series([1, 1, 1, 1, 1], index=idx, dtype="int8")
+    result = compute_metrics_by_regime(ic, ls, regime, turnover=None)
+    ic0 = result[0]["ic_mean"]
+    assert ic0 is not None and math.isnan(ic0)
+    assert result[1]["ic_mean"] == pytest.approx(0.03)
+
+
+def test_compute_metrics_by_regime_with_turnover() -> None:
+    idx = pd.bdate_range("2024-01-02", periods=4)
+    ic = pd.Series([0.01, 0.02, 0.03, 0.04], index=idx)
+    ls = pd.Series([0.001, 0.002, 0.003, 0.004], index=idx)
+    tov = pd.Series([0.1, 0.2, 0.3, 0.4], index=idx)
+    regime = pd.Series([0, 0, 1, 1], index=idx, dtype="int8")
+    result = compute_metrics_by_regime(ic, ls, regime, turnover=tov)
+    assert result[0]["mean_turnover"] == pytest.approx(0.15)
+    assert result[1]["mean_turnover"] == pytest.approx(0.35)
+
+
+def test_compute_metrics_by_regime_inner_joins_on_regime_index() -> None:
+    """If the regime index is a subset of the ic index, only overlapping days are used."""
+    ic_idx = pd.bdate_range("2024-01-02", periods=10)
+    ic = pd.Series(np.arange(10, dtype=float), index=ic_idx)
+    ls = pd.Series([0.001] * 10, index=ic_idx)
+    # Regime only covers the second half
+    regime = pd.Series([0, 0, 1, 1, 1], index=ic_idx[5:], dtype="int8")
+    result = compute_metrics_by_regime(ic, ls, regime, turnover=None)
+    assert result[0]["ic_mean"] == pytest.approx(5.5)  # mean of 5, 6
+    assert result[1]["ic_mean"] == pytest.approx(8.0)  # mean of 7, 8, 9

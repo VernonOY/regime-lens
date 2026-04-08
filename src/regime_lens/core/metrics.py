@@ -76,3 +76,40 @@ def mean_turnover(turnover: pd.Series | None) -> float | None:
     if len(turnover) == 0:
         return math.nan
     return float(turnover.mean())
+
+
+MetricsDict = dict[str, float | None]
+
+
+def compute_metrics_by_regime(
+    factor_ic: pd.Series,
+    long_short_returns: pd.Series,
+    regime: pd.Series,
+    turnover: pd.Series | None,
+) -> dict[int, MetricsDict]:
+    """Group factor metrics by regime label and compute all 6 metrics per group.
+
+    The regime series defines the valid date range. Factor inputs are
+    inner-joined onto the regime index; any dates not present in the regime
+    are dropped. Both regime label values (0 and 1) always appear in the
+    output, even if empty — empty groups get NaN metrics.
+    """
+    aligned_ic = factor_ic.reindex(regime.index)
+    aligned_ls = long_short_returns.reindex(regime.index)
+    aligned_tov = turnover.reindex(regime.index) if turnover is not None else None
+
+    result: dict[int, MetricsDict] = {}
+    for label in (0, 1):
+        mask = regime == label
+        ic_group = aligned_ic[mask]
+        ls_group = aligned_ls[mask]
+        tov_group = aligned_tov[mask] if aligned_tov is not None else None
+        result[label] = {
+            "ic_mean": ic_mean(ic_group),
+            "ic_ir": ic_ir(ic_group),
+            "ic_win_rate": ic_win_rate(ic_group),
+            "annualized_return": annualized_return(ls_group),
+            "max_drawdown": max_drawdown(ls_group),
+            "mean_turnover": mean_turnover(tov_group),
+        }
+    return result
