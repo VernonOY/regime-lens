@@ -84,3 +84,48 @@ def detect_trend_regime(market_prices: pd.Series, window: int = 60) -> pd.Series
     labels: pd.Series = (market_prices[valid] > ma[valid]).astype(np.int8)
     labels.name = "trend_regime"
     return labels
+
+
+def validate_custom_regime(regime: pd.Series, reference_index: pd.DatetimeIndex) -> pd.Series:
+    """Validate and normalize a user-supplied regime label series.
+
+    Rules:
+    - Every value must be in {0, 1} (bool is accepted and coerced to int8).
+    - Every entry in `reference_index` must appear in `regime.index` — the
+      custom regime must cover the full factor date range.
+    - The returned series has dtype int8 and is reindexed to `reference_index`.
+
+    Parameters
+    ----------
+    regime : pd.Series
+        User-supplied 0/1 or bool Series.
+    reference_index : pd.DatetimeIndex
+        Reference index the regime must cover.
+
+    Returns
+    -------
+    pd.Series
+        int8 Series reindexed to `reference_index`, name "custom_regime".
+
+    Raises
+    ------
+    ValueError
+        On dtype, value, or alignment problems.
+    """
+    if regime.dtype == bool:
+        regime = regime.astype(np.int8)
+
+    values = set(pd.Series(regime.unique()).dropna().tolist())
+    if not values.issubset({0, 1}):
+        raise ValueError(f"custom regime values must be 0 or 1, found: {sorted(values)}")
+
+    missing = reference_index.difference(regime.index.tolist())
+    if len(missing) > 0:
+        raise ValueError(
+            f"custom regime missing {len(missing)} entries from reference index "
+            f"(first missing: {missing[0]})"
+        )
+
+    result: pd.Series = regime.reindex(reference_index).astype(np.int8)
+    result.name = "custom_regime"
+    return result

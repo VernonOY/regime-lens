@@ -4,7 +4,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from regime_lens.core.regimes import detect_trend_regime, detect_volatility_regime
+from regime_lens.core.regimes import (
+    detect_trend_regime,
+    detect_volatility_regime,
+    validate_custom_regime,
+)
 
 
 def test_volatility_regime_returns_int8_series(
@@ -88,3 +92,34 @@ def test_trend_regime_detects_downtrend() -> None:
 def test_trend_regime_rejects_short_series() -> None:
     with pytest.raises(ValueError, match="at least"):
         detect_trend_regime(pd.Series([1.0, 2.0, 3.0]), window=60)
+
+
+def test_validate_custom_regime_accepts_clean_01_series() -> None:
+    idx = pd.bdate_range("2024-01-02", periods=10)
+    ref = pd.Series(range(10), index=idx, dtype="float64")
+    custom = pd.Series([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], index=idx, dtype="int8")
+    result = validate_custom_regime(custom, reference_index=ref.index)
+    assert result.dtype == np.int8
+    assert result.equals(custom)
+
+
+def test_validate_custom_regime_rejects_non_binary() -> None:
+    idx = pd.bdate_range("2024-01-02", periods=5)
+    bad = pd.Series([0, 1, 2, 0, 1], index=idx)
+    with pytest.raises(ValueError, match="must be 0 or 1"):
+        validate_custom_regime(bad, reference_index=idx)
+
+
+def test_validate_custom_regime_rejects_missing_index_entries() -> None:
+    idx = pd.bdate_range("2024-01-02", periods=10)
+    short = pd.Series([0, 1, 0], index=idx[:3])
+    with pytest.raises(ValueError, match="reference index"):
+        validate_custom_regime(short, reference_index=idx)
+
+
+def test_validate_custom_regime_accepts_bool_and_coerces() -> None:
+    idx = pd.bdate_range("2024-01-02", periods=5)
+    bool_series = pd.Series([True, False, True, False, True], index=idx)
+    result = validate_custom_regime(bool_series, reference_index=idx)
+    assert result.dtype == np.int8
+    assert result.tolist() == [1, 0, 1, 0, 1]
