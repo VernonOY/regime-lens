@@ -91,6 +91,13 @@ def test_cli_analyze_prints_summary(
     assert "IC" in result.output
 
 
+def test_cli_list_regimes(cli_runner: CliRunner) -> None:
+    result = cli_runner.invoke(cli, ["list-regimes"])
+    assert result.exit_code == 0
+    assert "volatility" in result.output
+    assert "trend" in result.output
+
+
 def test_cli_analyze_errors_on_missing_input(cli_runner: CliRunner, tmp_path: Path) -> None:
     result = cli_runner.invoke(
         cli,

@@ -111,6 +111,27 @@ def analyze(
     _console.print(f"JSON: {out_json}")
 
 
+@cli.command("list-regimes")
+def list_regimes() -> None:
+    """List built-in regime detectors."""
+    table = Table(title="Built-in regimes")
+    table.add_column("name")
+    table.add_column("description")
+    table.add_row(
+        "volatility",
+        "20-day realized vol vs. in-sample median (1 = high vol, 0 = low vol)",
+    )
+    table.add_row(
+        "trend",
+        "close price vs. 60-day SMA (1 = above MA, 0 = below MA)",
+    )
+    _console.print(table)
+    _console.print(
+        "\nUse `custom_regimes={'my_name': series}` in the Python API "
+        "to pass a user-defined 0/1 label series.",
+    )
+
+
 def _render_summary_table(df: pd.DataFrame) -> None:
     table = Table(title="Regime metrics")
     table.add_column("regime")
