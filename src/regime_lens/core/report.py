@@ -1,14 +1,17 @@
-"""Regime-sliced analysis report: data access, JSON export, summary text.
-
-Plotly HTML rendering is added in Task 12.
-"""
+"""Regime-sliced analysis report: data access, JSON export, summary, Plotly HTML."""
 
 from __future__ import annotations
 
 import math
+import tempfile
+import webbrowser
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 
 def _clean(value: float | None) -> float | None:
@@ -65,3 +68,50 @@ class RegimeReport:
             ic_0_str = f"{ic_0:+.3f}" if ic_0 is not None else "N/A"
             parts.append(f"{name}: factor IC is {ic_1_str} (regime=1) vs {ic_0_str} (regime=0)")
         return "; ".join(parts) + "."
+
+    def to_html(self) -> str:
+        """Render the report as a self-contained Plotly HTML string."""
+        fig = _build_figure(self)
+        html: str = fig.to_html(include_plotlyjs="inline", full_html=True)
+        return html
+
+    def save_html(self, path: Path | str) -> None:
+        """Write the HTML report to disk."""
+        Path(path).write_text(self.to_html(), encoding="utf-8")
+
+    def show(self) -> None:
+        """Open the HTML report in the default web browser."""
+        tmp = Path(tempfile.gettempdir()) / "regime_lens_report.html"
+        self.save_html(tmp)
+        webbrowser.open(tmp.as_uri())
+
+
+def _build_figure(report: RegimeReport) -> Any:
+    """Build a Plotly Figure with one subplot per regime type."""
+    regime_names = list(report.data.index.get_level_values("regime_name").unique())
+    # mean_turnover is often None - skip it in the bar chart
+    metric_cols = [c for c in report.data.columns if c != "mean_turnover"]
+    fig = make_subplots(
+        rows=len(regime_names),
+        cols=1,
+        subplot_titles=[f"Regime: {name}" for name in regime_names],
+    )
+    for i, name in enumerate(regime_names, start=1):
+        subset = report.data.loc[name]
+        for regime_value in subset.index:
+            values = [_clean(subset.loc[regime_value, m]) or 0.0 for m in metric_cols]
+            fig.add_trace(
+                go.Bar(
+                    name=f"{name}={int(regime_value)}",
+                    x=metric_cols,
+                    y=values,
+                ),
+                row=i,
+                col=1,
+            )
+    fig.update_layout(
+        title_text="regime-lens: factor metrics by market regime",
+        height=320 * len(regime_names),
+        barmode="group",
+    )
+    return fig

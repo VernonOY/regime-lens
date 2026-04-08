@@ -63,3 +63,41 @@ def test_report_summary_handles_nan_gracefully(report: RegimeReport) -> None:
     # No literal "nan" in the rendered sentence
     assert "nan" not in text.lower()
     assert "N/A" in text
+
+
+def test_report_to_html_is_plotly_standalone(report: RegimeReport) -> None:
+    html = report.to_html()
+    assert "plotly" in html.lower()
+    assert "<div" in html
+
+
+def test_report_to_html_mentions_each_regime(report: RegimeReport) -> None:
+    html = report.to_html()
+    assert "volatility" in html
+    assert "trend" in html
+
+
+def test_report_save_html_writes_file(
+    report: RegimeReport, tmp_path: "pytest.TempPathFactory"
+) -> None:
+    from pathlib import Path
+
+    out = Path(str(tmp_path)) / "report.html"
+    report.save_html(out)
+    assert out.exists()
+    content = out.read_text()
+    assert "plotly" in content.lower()
+
+
+def test_report_show_opens_browser(report: RegimeReport, monkeypatch: pytest.MonkeyPatch) -> None:
+    """show() writes to a tempfile and calls webbrowser.open — mock the browser."""
+    called: list[str] = []
+
+    def fake_open(url: str, *args: object, **kwargs: object) -> bool:
+        called.append(url)
+        return True
+
+    monkeypatch.setattr("webbrowser.open", fake_open)
+    report.show()
+    assert len(called) == 1
+    assert called[0].startswith("file://")
