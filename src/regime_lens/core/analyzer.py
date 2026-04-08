@@ -79,7 +79,14 @@ class RegimeAnalyzer:
                 regime_label_series[name] = validate_custom_regime(series, reference_index=ref_idx)
 
         rows: list[dict[str, object]] = []
+        regime_counts: dict[str, dict[int, int]] = {}
         for regime_name, labels in regime_label_series.items():
+            # Count days per label (0 and 1) for the distribution display
+            label_counts: dict[int, int] = {0: 0, 1: 0}
+            for label_val in (0, 1):
+                label_counts[label_val] = int((labels == label_val).sum())
+            regime_counts[regime_name] = label_counts
+
             per_group = compute_metrics_by_regime(
                 factor_ic=factor_ic,
                 long_short_returns=long_short_returns,
@@ -96,4 +103,4 @@ class RegimeAnalyzer:
                 )
 
         df = pd.DataFrame(rows).set_index(["regime_name", "regime_value"])
-        return RegimeReport(data=df)
+        return RegimeReport(data=df, regime_counts=regime_counts)

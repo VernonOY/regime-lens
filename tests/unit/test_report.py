@@ -101,3 +101,63 @@ def test_report_show_opens_browser(report: RegimeReport, monkeypatch: pytest.Mon
     report.show()
     assert len(called) == 1
     assert called[0].startswith("file://")
+
+
+def test_report_html_contains_summary_box(report: RegimeReport) -> None:
+    """The HTML page wraps the plot with a summary box containing the summary text."""
+    html = report.to_html()
+    assert "summary-box" in html
+    assert report.summary() in html
+
+
+def test_report_html_contains_regime_distribution(report: RegimeReport) -> None:
+    """The HTML page shows a regime distribution section with semantic labels."""
+    html = report.to_html()
+    assert "Regime distribution" in html
+    assert "high vol" in html
+    assert "low vol" in html
+    assert "up-trend" in html
+    assert "down-trend" in html
+
+
+def test_report_html_contains_data_table(report: RegimeReport) -> None:
+    """The HTML page includes a data-table with formatted display metric names."""
+    html = report.to_html()
+    assert "data-table" in html
+    assert "IC Mean" in html
+    assert "IC IR (annualized)" in html
+    assert "Max Drawdown" in html
+
+
+def test_report_summary_uses_semantic_labels(report: RegimeReport) -> None:
+    """Summary prose uses 'high vol' / 'up-trend' instead of 'regime=1'."""
+    text = report.summary()
+    assert "high vol" in text
+    assert "low vol" in text
+    assert "up-trend" in text
+    assert "down-trend" in text
+    assert "regime=1" not in text
+    assert "regime=0" not in text
+
+
+def test_report_regime_counts_populated_by_analyzer(
+    sample_factor_ic: "pd.Series[float]",
+    sample_long_short_returns: "pd.Series[float]",
+    sample_market_prices: "pd.Series[float]",
+) -> None:
+    """The analyzer populates regime_counts with per-regime sample sizes."""
+    analyzer = RegimeAnalyzer()
+    rep = analyzer.analyze(
+        factor_ic=sample_factor_ic,
+        long_short_returns=sample_long_short_returns,
+        market_prices=sample_market_prices,
+        regimes=["volatility", "trend"],
+    )
+    assert "volatility" in rep.regime_counts
+    assert "trend" in rep.regime_counts
+    for name in ("volatility", "trend"):
+        assert set(rep.regime_counts[name].keys()) == {0, 1}
+        for v in rep.regime_counts[name].values():
+            assert isinstance(v, int) and v >= 0
+    vol_total = sum(rep.regime_counts["volatility"].values())
+    assert 0 < vol_total <= len(sample_market_prices)

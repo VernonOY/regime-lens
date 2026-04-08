@@ -14,7 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Built-in regime detectors: `volatility` (20-day realized vol vs. in-sample median) and `trend` (60-day SMA).
 - User-supplied custom 0/1 regime label series via `custom_regimes`.
 - Per-regime metrics: `ic_mean`, `ic_ir`, `ic_win_rate`, `annualized_return`, `max_drawdown`, `mean_turnover`.
-- `RegimeReport` with `.data`, `.to_json()`, `.summary()`, `.to_html()`, `.save_html()`, `.show()`.
+- `RegimeReport` with `.data`, `.regime_counts`, `.to_json()`, `.summary()`, `.to_html()`, `.save_html()`, `.show()`.
+- HTML report includes header, natural-language summary box, regime distribution
+  section (sample sizes per label), one Plotly subplot per metric with consistent
+  red/blue color coding, value annotations on bars, semantic label names (`high vol`
+  / `low vol` / `up-trend` / `down-trend`), and a formatted data table at the bottom.
 - `regime-lens analyze` CLI command producing an HTML report + JSON export.
 - `regime-lens list-regimes` CLI command.
 - `examples/quickstart.py` showing end-to-end usage on synthetic data.

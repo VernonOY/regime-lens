@@ -45,7 +45,7 @@ report = analyzer.analyze(
 )
 
 print(report.summary())
-# "volatility: factor IC is +0.055 (regime=1) vs +0.037 (regime=0); trend: factor IC is +0.061 (regime=1) vs +0.039 (regime=0)."
+# "volatility: factor IC is +0.055 (high vol) vs +0.037 (low vol); trend: factor IC is +0.061 (up-trend) vs +0.039 (down-trend)."
 
 report.save_html("report.html")   # interactive Plotly
 print(report.to_json())           # json.dumps-safe dict
@@ -79,8 +79,8 @@ Sample terminal output:
 │ trend   │ 1     │ +0.0615 │ +13.143 │ +0.8125 │ -0.2359 │  -0.1094 │     N/A │
 └─────────┴───────┴─────────┴─────────┴─────────┴─────────┴──────────┴─────────┘
 
-Summary: volatility: factor IC is +0.055 (regime=1) vs +0.037 (regime=0); trend:
-factor IC is +0.061 (regime=1) vs +0.039 (regime=0).
+Summary: volatility: factor IC is +0.055 (high vol) vs +0.037 (low vol); trend:
+factor IC is +0.061 (up-trend) vs +0.039 (down-trend).
 HTML: report.html
 JSON: report.json
 ```
