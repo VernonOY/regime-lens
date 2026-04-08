@@ -12,6 +12,7 @@ from regime_lens.core.metrics import (
     ic_mean,
     ic_win_rate,
     max_drawdown,
+    mean_turnover,
 )
 
 
@@ -89,3 +90,18 @@ def test_max_drawdown_empty_returns_nan() -> None:
 
 def test_max_drawdown_all_nan_returns_nan() -> None:
     assert math.isnan(max_drawdown(pd.Series([np.nan, np.nan])))
+
+
+def test_mean_turnover_simple() -> None:
+    tov = pd.Series([0.1, 0.2, 0.3])
+    assert mean_turnover(tov) == pytest.approx(0.2)
+
+
+def test_mean_turnover_none_returns_none() -> None:
+    assert mean_turnover(None) is None
+
+
+def test_mean_turnover_empty_series_returns_nan() -> None:
+    result = mean_turnover(pd.Series([], dtype="float64"))
+    assert result is not None
+    assert math.isnan(result)

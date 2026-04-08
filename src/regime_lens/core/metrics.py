@@ -67,3 +67,12 @@ def max_drawdown(returns: pd.Series) -> float:
     rolling_peak = np.maximum.accumulate(equity)
     drawdown = equity / rolling_peak - 1.0
     return float(drawdown.min())
+
+
+def mean_turnover(turnover: pd.Series | None) -> float | None:
+    """Mean turnover, or None if the user did not provide a turnover series."""
+    if turnover is None:
+        return None
+    if len(turnover) == 0:
+        return math.nan
+    return float(turnover.mean())
