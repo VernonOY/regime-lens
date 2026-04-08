@@ -76,9 +76,7 @@ class RegimeAnalyzer:
         if custom_regimes:
             ref_idx = pd.DatetimeIndex(factor_ic.index)
             for name, series in custom_regimes.items():
-                regime_label_series[name] = validate_custom_regime(
-                    series, reference_index=ref_idx
-                )
+                regime_label_series[name] = validate_custom_regime(series, reference_index=ref_idx)
 
         rows: list[dict[str, object]] = []
         for regime_name, labels in regime_label_series.items():
